@@ -42,9 +42,9 @@ def create_tools(user_id: str, exchange_manager: ExchangeManager):
     """Create tools for the agent with user context."""
     
     class GetBalanceTool(BaseTool):
-        name = "get_balance"
-        description = "Get total balance of an asset across all connected exchanges. Returns the unified view."
-        args_schema = GetBalanceInput
+        name: str = "get_balance"
+        description: str = "Get total balance of an asset across all connected exchanges. Returns the unified view."
+        args_schema: type = GetBalanceInput
         
         async def _arun(self, asset: str) -> str:
             total = await state_manager.get_total_balance(user_id, asset)
@@ -66,9 +66,9 @@ def create_tools(user_id: str, exchange_manager: ExchangeManager):
             return asyncio.run(self._arun(asset))
     
     class GetPositionTool(BaseTool):
-        name = "get_position"
-        description = "Get position details for a symbol across all exchanges."
-        args_schema = GetPositionInput
+        name: str = "get_position"
+        description: str = "Get position details for a symbol across all exchanges."
+        args_schema: type = GetPositionInput
         
         async def _arun(self, symbol: str) -> str:
             unified_positions = await exchange_manager.get_unified_positions(user_id)
@@ -98,14 +98,14 @@ def create_tools(user_id: str, exchange_manager: ExchangeManager):
             return asyncio.run(self._arun(symbol))
     
     class PlaceOrderTool(BaseTool):
-        name = "place_order"
-        description = (
+        name: str = "place_order"
+        description: str = (
             "Place an order on an exchange. "
             "For market orders, execution is immediate. "
             "The agent must decide which exchange to use based on balance availability and best execution. "
             "This is a REAL order that will execute with real money."
         )
-        args_schema = PlaceOrderInput
+        args_schema: type = PlaceOrderInput
         
         async def _arun(
             self,
@@ -202,9 +202,9 @@ def create_tools(user_id: str, exchange_manager: ExchangeManager):
             return asyncio.run(self._arun(symbol, side, amount, **kwargs))
     
     class GetTickerTool(BaseTool):
-        name = "get_ticker"
-        description = "Get current price/ticker for a symbol."
-        args_schema = GetTickerInput
+        name: str = "get_ticker"
+        description: str = "Get current price/ticker for a symbol."
+        args_schema: type = GetTickerInput
         
         async def _arun(self, symbol: str) -> str:
             user_exchanges = exchange_manager.get_user_exchanges(user_id)

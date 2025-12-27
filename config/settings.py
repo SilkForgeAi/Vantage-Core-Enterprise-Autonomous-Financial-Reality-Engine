@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     # Agent Configuration
     max_execution_time_seconds: int = 10
     enable_live_trading: bool = False
+    demo_mode: bool = False  # Use mock exchanges for demonstrations (no API keys needed)
     
     # Logging
     log_level: str = "INFO"

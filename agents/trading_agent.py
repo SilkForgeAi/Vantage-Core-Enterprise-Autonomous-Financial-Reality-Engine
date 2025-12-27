@@ -6,7 +6,10 @@ import structlog
 import json
 import re
 from langgraph.graph import StateGraph, END
-from langchain.anthropic import ChatAnthropic
+try:
+    from langchain_anthropic import ChatAnthropic
+except ImportError:
+    from langchain.anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from config.settings import settings
@@ -45,21 +48,24 @@ class TradingAgent:
         self.user_id = user_id
         self.exchange_manager = exchange_manager
         
-        # Initialize LLM
-        if settings.anthropic_api_key:
-            self.llm = ChatAnthropic(
-                model=settings.default_model if "claude" in settings.default_model else "claude-3-5-sonnet-20241022",
-                temperature=0.1,  # Low temperature for deterministic decisions
-                api_key=settings.anthropic_api_key
-            )
-        elif settings.openai_api_key:
+        # Initialize LLM (prefer OpenAI if both are available, check for valid keys)
+        anthropic_key_valid = settings.anthropic_api_key and settings.anthropic_api_key != "your_anthropic_key_here" and not settings.anthropic_api_key.startswith("your_")
+        openai_key_valid = settings.openai_api_key and settings.openai_api_key != "your_openai_key_here" and not settings.openai_api_key.startswith("your_")
+        
+        if openai_key_valid:
             self.llm = ChatOpenAI(
-                model=settings.default_model if "gpt" in settings.default_model else "gpt-4-turbo-preview",
+                model=settings.default_model if "gpt" in settings.default_model.lower() else "gpt-4-turbo-preview",
                 temperature=0.1,
                 api_key=settings.openai_api_key
             )
+        elif anthropic_key_valid:
+            self.llm = ChatAnthropic(
+                model=settings.default_model if "claude" in settings.default_model.lower() else "claude-3-5-sonnet-20241022",
+                temperature=0.1,  # Low temperature for deterministic decisions
+                api_key=settings.anthropic_api_key
+            )
         else:
-            raise ValueError("No LLM API key configured")
+            raise ValueError("No valid LLM API key configured. Please set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env")
         
         # Create tools
         self.tools = create_tools(user_id, exchange_manager)

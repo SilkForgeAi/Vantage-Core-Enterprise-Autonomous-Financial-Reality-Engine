@@ -1,6 +1,7 @@
 """Manager for multiple exchange connections per user."""
 from typing import Dict, List, Optional
 from exchanges.ccxt_exchange import CCXTExchange
+from exchanges.mock_exchange import MockExchange
 from exchanges.base_exchange import BaseExchange, Balance, Position, OrderRequest, OrderFill
 from security.encryption import KeyEncryption
 import structlog
@@ -23,18 +24,28 @@ class ExchangeManager:
     
     async def add_exchange(self, user_id: str, exchange_name: str, encrypted_api_key: str, encrypted_api_secret: str):
         """Add and connect an exchange for a user."""
-        # Decrypt credentials
-        api_key, api_secret = self.encryption.decrypt_api_key(encrypted_api_key, encrypted_api_secret)
-        
-        # Create exchange instance
-        exchange = CCXTExchange(
-            exchange_name=exchange_name,
-            api_key=api_key,
-            api_secret=api_secret,
-            sandbox=not settings.enable_live_trading
-        )
-        
-        await exchange.connect()
+        # Use mock exchange in demo mode
+        if settings.demo_mode:
+            exchange = MockExchange(
+                exchange_name=exchange_name,
+                api_key="",
+                api_secret="",
+                sandbox=True
+            )
+            await exchange.connect()
+        else:
+            # Decrypt credentials
+            api_key, api_secret = self.encryption.decrypt_api_key(encrypted_api_key, encrypted_api_secret)
+            
+            # Create exchange instance
+            exchange = CCXTExchange(
+                exchange_name=exchange_name,
+                api_key=api_key,
+                api_secret=api_secret,
+                sandbox=not settings.enable_live_trading
+            )
+            
+            await exchange.connect()
         
         # Store in user's exchange dict
         if user_id not in self.user_exchanges:

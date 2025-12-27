@@ -46,6 +46,7 @@ ALPACA_API_SECRET=
 MAX_EXECUTION_TIME_SECONDS=10
 DEFAULT_MODEL=claude-3-5-sonnet-20241022
 ENABLE_LIVE_TRADING=false  # Set to true only when ready for real money
+DEMO_MODE=false  # Set to true for safe demonstrations (uses mock exchanges)
 
 # Logging
 LOG_LEVEL=INFO

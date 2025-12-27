@@ -107,7 +107,13 @@ async def add_exchange(request: AddExchangeRequest):
     # Sync initial state
     await _sync_user_state(request.user_id)
     
-    return {"status": "success", "exchange": request.exchange_name}
+    mode = "MOCK (demo)" if settings.demo_mode else ("SANDBOX" if not settings.enable_live_trading else "LIVE")
+    return {
+        "status": "success",
+        "exchange": request.exchange_name,
+        "mode": mode,
+        "warning": "DEMO MODE - No real trades" if settings.demo_mode else None
+    }
 
 
 @app.post("/api/agent/message")
@@ -126,11 +132,33 @@ async def process_message(request: MessageRequest):
     if not request.user_id or not request.message:
         raise HTTPException(status_code=400, detail="user_id and message are required")
     
+    # Auto-initialize demo user in demo mode
     if request.user_id not in trading_agents:
-        raise HTTPException(
-            status_code=404,
-            detail="User not initialized. Add exchanges first via /api/user/add_exchange"
-        )
+        if settings.demo_mode:
+            # Create demo user with mock exchanges automatically
+            exchange_managers[request.user_id] = ExchangeManager(encryption)
+            trading_agents[request.user_id] = TradingAgent(
+                request.user_id,
+                exchange_managers[request.user_id]
+            )
+            # Add mock exchanges
+            dummy_key = encryption.encrypt("demo_key")
+            dummy_secret = encryption.encrypt("demo_secret")
+            for exch_name in ["binance", "bybit"]:
+                try:
+                    await exchange_managers[request.user_id].add_exchange(
+                        request.user_id,
+                        exch_name,
+                        dummy_key,
+                        dummy_secret
+                    )
+                except:
+                    pass
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="User not initialized. Add exchanges first via /api/user/add_exchange"
+            )
     
     agent = trading_agents[request.user_id]
     
