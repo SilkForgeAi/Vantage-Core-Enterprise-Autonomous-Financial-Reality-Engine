@@ -1,4 +1,4 @@
-# Architecture Documentation
+Architecture Documentation
 
 System Overview
 
@@ -15,85 +15,82 @@ Core Principles
 
 Component Architecture
 
-1. Agent Layer (`agents/`)
+1. Agent Layer (agents/)
 
-TradingAgent (`agents/trading_agent.py`)
+TradingAgent (agents/trading_agent.py)
 - LangGraph-based stateful agent
 - Dynamic intent extraction via LLM
 - Tool-based execution model
 - Memory integration for context
 
 Key Flow:
-```
-User Message → Extract Intent → Reason & Execute (Tools) → Audit → Response
-```
 
-Tools (`agents/tools.py`):
-- `get_balance`: Unified balance query across exchanges
-- `get_position`: Position details across venues
-- `place_order`: Execute trades (real money)
-- `get_ticker`: Current price information
+Tools (agents/tools.py):
+- get_balance: Unified balance query across exchanges
+- get_position: Position details across venues
+- place_order: Execute trades (real money)
+- get_ticker: Current price information
 
-2. Exchange Layer (`exchanges/`)
+2. Exchange Layer (exchanges/)
 
-ExchangeManager (`exchanges/exchange_manager.py`)
+ExchangeManager (exchanges/exchange_manager.py)
 - Manages multiple exchange connections per user
 - Unified interface across exchanges
 - Per-user isolation
 
-CCXTExchange (`exchanges/ccxt_exchange.py`)
+CCXTExchange (exchanges/ccxt_exchange.py)
 - CCXT-based implementation
 - Supports any CCXT-compatible exchange
 - WebSocket/polling for real-time updates
 
-BaseExchange (`exchanges/base_exchange.py`)
+BaseExchange (exchanges/base_exchange.py)
 - Abstract interface for exchange implementations
 - Unified data structures (Balance, Position, OrderFill)
 
-3. State Management (`storage/`)
+3. State Management (storage/)
 
-UnifiedStateManager (`storage/state_manager.py`)
+UnifiedStateManager (storage/state_manager.py)
 - Redis-backed state storage
 - Per-user namespacing
 - Unified cross-venue views
 - Real-time synchronization
 
-UserMemoryManager (`storage/memory_manager.py`)
+UserMemoryManager (storage/memory_manager.py)
 - ChromaDB vector memory
 - Persistent conversation history
 - Intent-outcome mappings
 - Semantic search for relevant context
 
-4. Security (`security/`)
+4. Security (security/)
 
-KeyEncryption (`security/encryption.py`)
+KeyEncryption (security/encryption.py)
 - Fernet encryption for API keys
 - PBKDF2 key derivation
 - Per-user key isolation
 - Secure storage at rest
 
-5. Audit System (`audit/`)
+5. Audit System (audit/)
 
-AuditLogger (`audit/audit_logger.py`)
+AuditLogger (audit/audit_logger.py)
 - Atomic log writes (JSON files)
 - Structured execution logs
 - Reasoning chain preservation
 - State snapshots at execution time
 
-6. Backend (`backend/`)
+6. Backend (backend/)
 
-FastAPI Server (`backend/main.py`)
+FastAPI Server (backend/main.py)
 - REST API for multi-user access
 - Endpoints for message processing
 - Exchange management
 - State queries
 
-State Sync Service (`backend/state_sync.py`)
+State Sync Service (backend/state_sync.py)
 - Background task for state synchronization
 - Periodic updates from exchanges to Redis
 - Maintains unified state views
 
-Telegram Bot (`backend/telegram_bot.py`)
+Telegram Bot (backend/telegram_bot.py)
 - Natural language interface
 - Routes messages to agent
 - Real-time responses
@@ -102,50 +99,13 @@ Data Flow
 
 Message Processing Flow
 
-```
-1. User sends message (Telegram/API)
-   ↓
-2. Backend receives → TradingAgent.process_message()
-   ↓
-3. Extract Intent (LLM-driven, no hard-coded rules)
-   ↓
-4. Search Memory (ChromaDB for relevant past interactions)
-   ↓
-5. Get Unified State (Redis: balances + positions across exchanges)
-   ↓
-6. Reason & Execute (LLM with tools)
-   - LLM decides which tool to call
-   - Tool executes (e.g., place_order)
-   - Exchange executes trade
-   ↓
-7. Audit Log (Structured log with reasoning + state snapshot)
-   ↓
-8. Store in Memory (ChromaDB for future context)
-   ↓
-9. Update State (Redis synchronized from exchange)
-   ↓
-10. Return Response to User
-```
-
 State Synchronization Flow
-
-```
-Exchange WebSocket/Polling
-   ↓
-ExchangeManager.fetch_balances/positions()
-   ↓
-StateSyncService._sync_user_state()
-   ↓
-UnifiedStateManager.set_balance/position()
-   ↓
-Redis (per-user namespaced keys)
-```
 
 Multi-User Isolation
 
 Each user has:
 - Isolated Exchange Connections: Separate CCXTExchange instances
-- Separate State Namespace: Redis keys prefixed with `user:{user_id}:`
+- Separate State Namespace: Redis keys prefixed with user:{user_id}:
 - Independent Memory: ChromaDB collection per user
 - Separate Agent Instance: TradingAgent per user
 - Independent Audit Logs: Logs keyed by user_id
@@ -171,7 +131,7 @@ Solution
 
 Testing
 
-`tests/test_intent_consistency.py` validates this with 50+ phrasings per intent type.
+tests/test_intent_consistency.py validates this with 50+ phrasings per intent type.
 
 Performance Optimization
 
@@ -202,43 +162,26 @@ Security Considerations
 Deployment Architecture
 
 Development
-```
-FastAPI (uvicorn) ← Single process
-Redis ← Local instance
-ChromaDB ← Local directory
-Telegram Bot ← Separate process
-```
 
 Production (Recommended)
-```
-Load Balancer
-   ↓
-FastAPI (Gunicorn + Uvicorn workers)
-   ↓
-Redis Cluster
-   ↓
-ChromaDB (persistent volume)
-   ↓
-Exchange APIs (Binance, Bybit, etc.)
-```
 
 Extension Points
 
 Adding New Exchanges
 
 1. Exchange must support CCXT
-2. Add to `ExchangeManager.add_exchange()`
+2. Add to ExchangeManager.add_exchange()
 3. No code changes needed in agent layer
 
 Adding New Tools
 
-1. Create tool in `agents/tools.py`
-2. Add to `create_tools()` return list
+1. Create tool in agents/tools.py
+2. Add to create_tools() return list
 3. Agent automatically gets access via tool calling
 
 Customizing Agent Behavior
 
-1. Modify system prompts in `TradingAgent._reason_and_execute()`
+1. Modify system prompts in TradingAgent._reason_and_execute()
 2. Adjust temperature in LLM initialization
 3. Change memory search parameters
 
@@ -291,4 +234,3 @@ Every execution produces:
 - Error details (if any)
 
 All logs are atomic (single JSON file per execution) and traceable.
-
